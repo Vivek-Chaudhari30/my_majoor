@@ -1,0 +1,58 @@
+# Xcode / Swift build artifacts
+build/
+DerivedData/
+*.xcodeproj
+*.xcworkspace
+xcuserdata/
+*.xcuserstate
+*.xcuserdatad/
+
+# Swift Package Manager
+.swiftpm/
+.build/
+Package.resolved
+
+# macOS
+.DS_Store
+*.dSYM.zip
+*.dSYM
+
+# ===========================================================================
+# Secrets / local config — NEVER commit anything that holds an API key.
+# The real OpenAI key lives at ~/.majoor/config.json (outside this repo),
+# but these patterns defend against accidental copies into the repo.
+# ===========================================================================
+
+# Anything named config.json, at the root or any subfolder
+config.json
+**/config.json
+*.config.json
+
+# The local Majoor config dir, if it ever appears in the repo
+.majoor/
+**/.majoor/
+
+# Dotenv files
+.env
+.env.*
+*.env
+
+# Common secret-bearing filenames (PEMs, keys, certs, etc.)
+*.pem
+*.p12
+*.key
+*.cer
+*.cert
+*.keystore
+secrets.*
+*secret*
+*credentials*
+*.api_key
+.openai*
+api_key*
+
+# Logs / scratch / captured audio
+*.log
+*.tmp
+*.wav
+*.m4a
