@@ -1,6 +1,7 @@
 import AppKit
+import ServiceManagement
 
-final class AppDelegate: NSObject, NSApplicationDelegate {
+final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var statusItem: NSStatusItem!
     private let hotkey = HotkeyMonitor()
     private let recorder = AudioRecorder()
@@ -26,9 +27,22 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         let menu = NSMenu()
+        menu.delegate = self
         menu.addItem(withTitle: "Majoor v0.1", action: nil, keyEquivalent: "")
         menu.addItem(NSMenuItem.separator())
         menu.addItem(withTitle: "Hold ⌃⌥ to talk", action: nil, keyEquivalent: "")
+        menu.addItem(NSMenuItem.separator())
+        let launchItem = NSMenuItem(title: "Launch at Login",
+                                    action: #selector(toggleLaunchAtLogin(_:)),
+                                    keyEquivalent: "")
+        launchItem.target = self
+        launchItem.identifier = NSUserInterfaceItemIdentifier("launchAtLogin")
+        menu.addItem(launchItem)
+        let settingsItem = NSMenuItem(title: "Open Login Items Settings…",
+                                      action: #selector(openLoginItemsSettings),
+                                      keyEquivalent: "")
+        settingsItem.target = self
+        menu.addItem(settingsItem)
         menu.addItem(NSMenuItem.separator())
         menu.addItem(withTitle: "Quit Majoor",
                      action: #selector(NSApplication.terminate(_:)),
@@ -163,5 +177,46 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationWillTerminate(_ notification: Notification) {
         hotkey.stop()
         _ = recorder.stop()
+    }
+
+    // MARK: - Launch at Login
+
+    @objc private func toggleLaunchAtLogin(_ sender: NSMenuItem) {
+        let service = SMAppService.mainApp
+        do {
+            switch service.status {
+            case .enabled:
+                try service.unregister()
+                Log.info("Launch-at-login: unregistered.")
+            case .notRegistered, .notFound:
+                try service.register()
+                Log.info("Launch-at-login: registered.")
+            case .requiresApproval:
+                Log.warn("Launch-at-login requires approval. Opening Login Items settings…")
+                openLoginItemsSettings()
+            @unknown default:
+                break
+            }
+        } catch {
+            Log.error("Launch-at-login toggle failed: \(error.localizedDescription)")
+        }
+    }
+
+    @objc private func openLoginItemsSettings() {
+        if let url = URL(string: "x-apple.systempreferences:com.apple.LoginItems-Settings.extension") {
+            NSWorkspace.shared.open(url)
+        }
+    }
+
+    // Refresh the toggle's checkmark every time the menu opens.
+    func menuWillOpen(_ menu: NSMenu) {
+        guard let item = menu.items.first(where: { $0.identifier?.rawValue == "launchAtLogin" }) else { return }
+        let status = SMAppService.mainApp.status
+        switch status {
+        case .enabled:           item.state = .on;  item.title = "Launch at Login"
+        case .requiresApproval:  item.state = .mixed; item.title = "Launch at Login (needs approval)"
+        case .notRegistered, .notFound: item.state = .off; item.title = "Launch at Login"
+        @unknown default:        item.state = .off; item.title = "Launch at Login"
+        }
     }
 }
