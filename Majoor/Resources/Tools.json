@@ -1,0 +1,102 @@
+[
+  {
+    "type": "function",
+    "function": {
+      "name": "open_app",
+      "description": "Open a macOS application by name. Use for utterances like \"open Safari\", \"launch Notes\", \"throw on Spotify\".",
+      "strict": true,
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Canonical macOS application name as it appears in /Applications. Examples: 'Safari', 'Notes', 'Visual Studio Code', 'Spotify'."
+          }
+        },
+        "required": ["name"]
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "open_url",
+      "description": "Open a URL in the user's default browser. Use when the user names a website or domain without specifying which browser. Examples: 'open hacker news', 'go to gmail', 'open github.com'.",
+      "strict": true,
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "url": {
+            "type": "string",
+            "description": "Full URL including https://. If the user said a bare domain, prepend https://."
+          }
+        },
+        "required": ["url"]
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "open_url_in_app",
+      "description": "Open a specific URL inside a specific app. Use whenever the user names BOTH a URL/domain AND a browser app. Example: 'open gmail.com in Safari'.",
+      "strict": true,
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "url": {
+            "type": "string",
+            "description": "Full URL including https://. If the user said a bare domain, prepend https://."
+          },
+          "app": {
+            "type": "string",
+            "description": "The app name as the user said it. Examples: 'Safari', 'Google Chrome', 'Arc', 'Firefox', 'Brave Browser'."
+          }
+        },
+        "required": ["url", "app"]
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "search_web",
+      "description": "Open a Google search in the default browser. Use ONLY when the user is asking for fresh / live information they explicitly want searched — current news, today's prices, latest scores. For things you can answer from your own knowledge (capitals, definitions, conversions), reply in text instead — do NOT call this tool.",
+      "strict": true,
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "query": {
+            "type": "string",
+            "description": "A clean Google search query stripped of filler words (no 'can you', 'please', 'open and')."
+          }
+        },
+        "required": ["query"]
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "system_command",
+      "description": "Run a local macOS system action.",
+      "strict": true,
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "command": {
+            "type": "string",
+            "enum": ["toggle_dark_mode", "mute", "unmute", "empty_trash", "sleep", "lock"],
+            "description": "The system action to perform."
+          }
+        },
+        "required": ["command"]
+      }
+    }
+  }
+]

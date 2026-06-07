@@ -1,80 +1,120 @@
 import Foundation
 
+/// Result of executing a tool. `summary` is the natural-language phrase fed
+/// back to the model as the tool's `content`, e.g. "Opened Gmail in Safari".
+/// The model uses it to produce its final spoken reply.
+struct ToolResult {
+    let ok: Bool
+    let summary: String
+}
+
 enum ToolExecutor {
-    /// Run the tool the model picked. Returns true on success.
     @discardableResult
-    static func execute(_ call: ToolCall) -> Bool {
+    static func execute(_ call: ToolCall) -> ToolResult {
         switch call.name {
         case "open_app":
-            guard let raw = call.arguments["app_name"] as? String, !raw.isEmpty else {
-                Log.error("open_app missing app_name")
-                return false
+            guard let raw = call.arguments["name"] as? String, !raw.isEmpty else {
+                return ToolResult(ok: false, summary: "open_app missing name")
             }
             switch AppCatalog.resolve(spokenName: raw) {
-            case .app(let name):
-                return runOpen(["-a", name])
+            case .app(let canonical):
+                let ok = runOpen(["-a", canonical])
+                return ToolResult(ok: ok, summary: ok ? "Opened \(canonical)" : "Could not open \(canonical)")
             case .url(let url):
-                return runOpen([url.absoluteString])
+                let ok = runOpen([url.absoluteString])
+                return ToolResult(ok: ok, summary: ok ? "Opened \(url.absoluteString)" : "Could not open \(url.absoluteString)")
             }
 
         case "open_url":
             guard let urlString = call.arguments["url"] as? String,
-                  let url = URL(string: urlString),
-                  let scheme = url.scheme?.lowercased(),
-                  scheme == "https" || scheme == "http" else {
-                Log.error("open_url got an invalid or non-http(s) URL")
-                return false
+                  let url = normalizedURL(urlString) else {
+                return ToolResult(ok: false, summary: "open_url got an invalid URL")
             }
-            return runOpen([url.absoluteString])
+            let ok = runOpen([url.absoluteString])
+            return ToolResult(ok: ok, summary: ok ? "Opened \(url.absoluteString)" : "Could not open \(url.absoluteString)")
+
+        case "open_url_in_app":
+            guard let urlString = call.arguments["url"] as? String,
+                  let url = normalizedURL(urlString) else {
+                return ToolResult(ok: false, summary: "open_url_in_app got an invalid URL")
+            }
+            guard let appRaw = call.arguments["app"] as? String, !appRaw.isEmpty else {
+                return ToolResult(ok: false, summary: "open_url_in_app missing app")
+            }
+            let appName: String = {
+                if case .app(let canonical) = AppCatalog.resolve(spokenName: appRaw) { return canonical }
+                return appRaw
+            }()
+            let ok = runOpen(["-a", appName, url.absoluteString])
+            return ToolResult(
+                ok: ok,
+                summary: ok ? "Opened \(url.absoluteString) in \(appName)"
+                            : "Could not open \(url.absoluteString) in \(appName)"
+            )
 
         case "search_web":
             guard let query = call.arguments["query"] as? String, !query.isEmpty else {
-                Log.error("search_web missing query")
-                return false
+                return ToolResult(ok: false, summary: "search_web missing query")
             }
             let encoded = query.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? query
-            return runOpen(["https://www.google.com/search?q=\(encoded)"])
+            let ok = runOpen(["https://www.google.com/search?q=\(encoded)"])
+            return ToolResult(ok: ok, summary: ok ? "Searched the web for \"\(query)\"" : "Search failed")
 
         case "system_command":
-            guard let action = call.arguments["action"] as? String else { return false }
-            return runSystemCommand(action)
+            guard let command = call.arguments["command"] as? String else {
+                return ToolResult(ok: false, summary: "system_command missing command")
+            }
+            return runSystemCommand(command)
 
         default:
             Log.error("Unknown tool: \(call.name)")
-            return false
+            return ToolResult(ok: false, summary: "Unknown tool: \(call.name)")
         }
     }
 
-    @discardableResult
-    private static func runSystemCommand(_ action: String) -> Bool {
+    // MARK: - System commands
+
+    private static func runSystemCommand(_ command: String) -> ToolResult {
         let script: String
-        switch action {
+        let summary: String
+        switch command {
         case "toggle_dark_mode":
-            script = "tell application \"System Events\" to tell appearance preferences to set dark mode to not dark mode"
+            script  = "tell application \"System Events\" to tell appearance preferences to set dark mode to not dark mode"
+            summary = "Toggled dark mode"
         case "mute":
-            script = "set volume with output muted"
+            script  = "set volume with output muted"
+            summary = "Muted volume"
         case "unmute":
-            script = "set volume without output muted"
+            script  = "set volume without output muted"
+            summary = "Unmuted volume"
         case "empty_trash":
-            script = "tell application \"Finder\" to empty trash"
+            script  = "tell application \"Finder\" to empty trash"
+            summary = "Emptied the trash"
         case "sleep":
-            script = "tell application \"System Events\" to sleep"
+            script  = "tell application \"System Events\" to sleep"
+            summary = "Putting Mac to sleep"
+        case "lock":
+            // Ctrl+Cmd+Q is the lock shortcut on modern macOS.
+            script  = "tell application \"System Events\" to keystroke \"q\" using {control down, command down}"
+            summary = "Locked the screen"
         default:
-            return false
+            return ToolResult(ok: false, summary: "Unknown system command: \(command)")
         }
-        
+
         let task = Process()
         task.executableURL = URL(fileURLWithPath: "/usr/bin/osascript")
         task.arguments = ["-e", script]
         do {
             try task.run()
-            Log.info("Ran system command: \(action)")
-            return true
+            Log.info("Ran system command: \(command)")
+            return ToolResult(ok: true, summary: summary)
         } catch {
             Log.error("osascript failed: \(error.localizedDescription)")
-            return false
+            return ToolResult(ok: false, summary: "System command failed")
         }
     }
+
+    // MARK: - /usr/bin/open helpers
 
     @discardableResult
     private static func runOpen(_ args: [String]) -> Bool {
@@ -89,5 +129,16 @@ enum ToolExecutor {
             Log.error("/usr/bin/open failed: \(error.localizedDescription)")
             return false
         }
+    }
+
+    /// Accept bare domains like "gmail.com" and prepend https:// if missing.
+    private static func normalizedURL(_ raw: String) -> URL? {
+        let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return nil }
+        if let url = URL(string: trimmed), let scheme = url.scheme?.lowercased(),
+           scheme == "http" || scheme == "https" {
+            return url
+        }
+        return URL(string: "https://\(trimmed)")
     }
 }

@@ -15,8 +15,9 @@ final class OpenAIClient {
     // MARK: - Transcription
 
     /// POST audio to /v1/audio/transcriptions and return the transcript text.
+    /// Default model is `gpt-4o-mini-transcribe` per MASTER_PLAN §5.
     func transcribe(fileURL: URL,
-                    model: String = "whisper-1",
+                    model: String = "gpt-4o-mini-transcribe",
                     language: String? = "en") async throws -> String {
         let endpoint = URL(string: "https://api.openai.com/v1/audio/transcriptions")!
         var req = URLRequest(url: endpoint)
@@ -40,9 +41,11 @@ final class OpenAIClient {
         add("Content-Disposition: form-data; name=\"response_format\"\r\n\r\n")
         add("json\r\n")
 
+        // Whisper-style prompt biasing — Whisper / gpt-4o-mini-transcribe both
+        // accept a `prompt` field that biases decoding toward these tokens.
         add("--\(boundary)\r\n")
         add("Content-Disposition: form-data; name=\"prompt\"\r\n\r\n")
-        add("Open Safari, go to Gmail, search for the weather in Boston, Xcode, Spotify.\r\n")
+        add("Majoor, Gmail, GitHub, VS Code, Visual Studio Code, Safari, Chrome, Arc, Firefox, Brave, Cmd, Ctrl, Opt, YouTube, LinkedIn, Spotify, Notes, Calendar, Terminal, Finder, Reddit, Hacker News.\r\n")
 
         if let language {
             add("--\(boundary)\r\n")
@@ -69,75 +72,84 @@ final class OpenAIClient {
         return resp.text.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
-    // MARK: - Chat / tool calling
+    // MARK: - Agent loop (OpenAI's canonical 5-step pattern)
 
-    /// Send the transcript to gpt-4o-mini with our tool schemas, return the chosen ToolCall.
-    func chat(transcript: String, model: String = "gpt-4o-mini") async throws -> ToolCall {
+    /// Run the full chat-with-tools agent loop and return the final spoken text.
+    ///
+    /// MASTER_PLAN §1 / §10:
+    /// - `tool_choice = "auto"` — model can reply with text OR call tools.
+    /// - `temperature = 0` — deterministic tool routing.
+    /// - Bounded at 3 iterations.
+    /// - Tool execution happens inside this method; tool results are appended
+    ///   back as `role: "tool"` messages, then the model is re-queried for the
+    ///   final spoken reply.
+    func chat(transcript: String,
+              model: String = "gpt-4o-mini",
+              maxIterations: Int = 3) async throws -> String {
+
+        var messages: [[String: Any]] = [
+            ["role": "system", "content": SystemPrompt.text],
+            ["role": "user",   "content": transcript]
+        ]
+
+        for iteration in 0..<maxIterations {
+            let body: [String: Any] = [
+                "model": model,
+                "messages": messages,
+                "tools": Tools.all,
+                "tool_choice": "auto",
+                "temperature": 0
+            ]
+            let raw = try await postChatCompletion(body: body)
+
+            guard let choices = raw["choices"] as? [[String: Any]],
+                  let first = choices.first,
+                  let message = first["message"] as? [String: Any] else {
+                throw BrainError.malformedResponse("no choices/message")
+            }
+
+            // 1) Append the assistant message VERBATIM so the next round preserves tool_calls.
+            messages.append(reconstructAssistantMessage(message))
+
+            // 2) Did the model call any tools?
+            let toolCalls = parseToolCalls(message["tool_calls"])
+            if toolCalls.isEmpty {
+                // Plain text reply → that's the spoken text.
+                let content = (message["content"] as? String ?? "")
+                    .trimmingCharacters(in: .whitespacesAndNewlines)
+                if content.isEmpty {
+                    Log.warn("Model returned no text and no tools on iteration \(iteration + 1).")
+                    return "Sorry, I didn't get that."
+                }
+                return content
+            }
+
+            // 3) Execute each tool, append a tool result message per call.
+            for call in toolCalls {
+                Log.info("Tool: \(call.name)  args: \(call.arguments)")
+                let result = ToolExecutor.execute(call)
+                Log.info("Result: \(result.summary) (ok=\(result.ok))")
+                messages.append([
+                    "role": "tool",
+                    "tool_call_id": call.id,
+                    "content": result.summary
+                ])
+            }
+            // Loop — the model gets to see the tool results and produce a final reply.
+        }
+
+        Log.warn("Agent loop hit iteration cap (\(maxIterations)).")
+        return "Sorry, I got stuck."
+    }
+
+    // MARK: - HTTP helper
+
+    private func postChatCompletion(body: [String: Any]) async throws -> [String: Any] {
         let endpoint = URL(string: "https://api.openai.com/v1/chat/completions")!
         var req = URLRequest(url: endpoint)
         req.httpMethod = "POST"
         req.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")
-
-        let systemPrompt = """
-        You are Majoor, a voice-first macOS assistant.
-        The user just spoke a short command, which has been transcribed for you.
-        You MUST respond by calling exactly one tool — never reply with plain text.
-
-        Tool selection rules — apply IN ORDER, pick the FIRST that matches:
-
-        1. The user mentions a domain (e.g. "gmail.com", "youtube.com", "github.com/foo")
-           → call open_url with the full https:// URL.
-
-        2. The user mentions a known web service by name
-           (Gmail, LinkedIn, GitHub, YouTube, Twitter, X, Reddit, ChatGPT, Claude,
-            Google Docs, Google Drive, Google Calendar, Instagram, Facebook, WhatsApp Web)
-           → call open_url with its canonical https URL.
-           Examples:
-             "open gmail"            → open_url https://mail.google.com
-             "go to linkedin"        → open_url https://www.linkedin.com
-             "open youtube"          → open_url https://www.youtube.com
-
-        3. The user is asking a QUESTION or wants to LOOK SOMETHING UP
-           (phrases like "search for...", "look up...", "find...", "what is...",
-            "how is...", "where is...", "google..."), even if the word "open"
-           appears in their command.
-           → call search_web with a clean concise query (strip filler words like
-             "open and", "can you", "please").
-           Examples:
-             "search the weather in Boston"          → search_web "weather in Boston"
-             "open and search about how is the weather in Boston"
-                                                     → search_web "weather in Boston"
-             "what is the capital of France"         → search_web "capital of France"
-
-        4. The user wants to change a SYSTEM SETTING or ACTION
-           (e.g., "toggle dark mode", "mute volume", "empty the trash", "sleep mac")
-           → call system_command with the appropriate action.
-
-        5. The user explicitly wants to launch a MAC APPLICATION by name
-           (Safari, Notes, Calendar, Visual Studio Code, Spotify, Terminal, Finder, etc.)
-           → call open_app with the canonical app name as it appears in /Applications.
-           Map casual names: "vs code" → "Visual Studio Code", "chrome" → "Google Chrome".
-
-        6. Anything ambiguous or unrecognized
-           → call search_web with the user's utterance as the query.
-
-        For every tool call, include a short conversational `reply` (under 10 words)
-        in the arguments — this is spoken aloud as confirmation.
-        Examples of good replies: "Opening Gmail.", "Searching for that.", "Got it."
-        """
-
-        let body: [String: Any] = [
-            "model": model,
-            "messages": [
-                ["role": "system", "content": systemPrompt],
-                ["role": "user", "content": transcript]
-            ],
-            "tools": Tools.all,
-            "tool_choice": "required",
-            "temperature": 0.2
-        ]
-
         req.httpBody = try JSONSerialization.data(withJSONObject: body)
 
         let (data, response) = try await session.data(for: req)
@@ -146,52 +158,47 @@ final class OpenAIClient {
             let bodyStr = String(data: data, encoding: .utf8) ?? "<no body>"
             throw OpenAIError.http(http.statusCode, bodyStr)
         }
-
         guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
             throw BrainError.malformedResponse("not a JSON object")
         }
-        guard let choices = json["choices"] as? [[String: Any]],
-              let first = choices.first,
-              let message = first["message"] as? [String: Any] else {
-            throw BrainError.malformedResponse("no choices/message")
-        }
-        guard let toolCalls = message["tool_calls"] as? [[String: Any]],
-              let toolCall = toolCalls.first,
-              let function = toolCall["function"] as? [String: Any],
-              let name = function["name"] as? String,
-              let argsString = function["arguments"] as? String,
-              let argsData = argsString.data(using: .utf8),
-              let args = try JSONSerialization.jsonObject(with: argsData) as? [String: Any] else {
-            throw BrainError.noToolSelected
-        }
-        return ToolCall(name: name, arguments: args)
+        return json
     }
 
-    // MARK: - TTS
+    // MARK: - Message reconstruction
 
-    func speak(text: String, model: String = "tts-1", voice: String = "alloy") async throws -> Data {
-        let endpoint = URL(string: "https://api.openai.com/v1/audio/speech")!
-        var req = URLRequest(url: endpoint)
-        req.httpMethod = "POST"
-        req.setValue("Bearer " + apiKey, forHTTPHeaderField: "Authorization")
-        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
-
-        let body: [String: Any] = [
-            "model": model,
-            "input": text,
-            "voice": voice,
-            "response_format": "mp3"
-        ]
-
-        req.httpBody = try JSONSerialization.data(withJSONObject: body)
-
-        let (data, response) = try await session.data(for: req)
-        guard let http = response as? HTTPURLResponse else { throw OpenAIError.noHTTPResponse }
-        guard (200..<300).contains(http.statusCode) else {
-            let bodyStr = String(data: data, encoding: .utf8) ?? "<no body>"
-            throw OpenAIError.http(http.statusCode, bodyStr)
+    /// Build the exact message dict to append for the next round. We MUST keep
+    /// `tool_calls` exactly as the model produced them — content can be omitted
+    /// or null when tool_calls is present.
+    private func reconstructAssistantMessage(_ message: [String: Any]) -> [String: Any] {
+        var out: [String: Any] = ["role": "assistant"]
+        if let toolCalls = message["tool_calls"] {
+            out["tool_calls"] = toolCalls
+            // When tool_calls present, content may legitimately be null.
+            if let content = message["content"] as? String, !content.isEmpty {
+                out["content"] = content
+            }
+        } else {
+            out["content"] = message["content"] as? String ?? ""
         }
-        return data
+        return out
+    }
+
+    private func parseToolCalls(_ raw: Any?) -> [ToolCall] {
+        guard let array = raw as? [[String: Any]] else { return [] }
+        return array.compactMap { entry in
+            guard let id = entry["id"] as? String,
+                  let function = entry["function"] as? [String: Any],
+                  let name = function["name"] as? String,
+                  let argsString = function["arguments"] as? String else { return nil }
+            let args: [String: Any]
+            if let data = argsString.data(using: .utf8),
+               let parsed = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
+                args = parsed
+            } else {
+                args = [:]
+            }
+            return ToolCall(id: id, name: name, arguments: args)
+        }
     }
 }
 
@@ -202,8 +209,8 @@ enum OpenAIError: Error, LocalizedError {
 
     var errorDescription: String? {
         switch self {
-        case .tooShort: return "Audio too short."
-        case .noHTTPResponse: return "No HTTP response."
+        case .tooShort:        return "Audio too short."
+        case .noHTTPResponse:  return "No HTTP response."
         case .http(let code, let body): return "HTTP \(code): \(body)"
         }
     }

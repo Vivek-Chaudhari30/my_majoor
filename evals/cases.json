@@ -1,0 +1,159 @@
+[
+  {
+    "category": "chitchat",
+    "transcript": "Is this recording or not? Let's just check it once.",
+    "expected_behavior": "say",
+    "expected_arg_contains": ""
+  },
+  {
+    "category": "chitchat",
+    "transcript": "Hi, this is Vivek. I don't want you to do anything, just say hi back.",
+    "expected_behavior": "say",
+    "expected_arg_contains": ""
+  },
+  {
+    "category": "chitchat",
+    "transcript": "Hey Majoor, are you there?",
+    "expected_behavior": "say",
+    "expected_arg_contains": ""
+  },
+  {
+    "category": "chitchat",
+    "transcript": "Thanks Majoor.",
+    "expected_behavior": "say",
+    "expected_arg_contains": ""
+  },
+  {
+    "category": "chitchat",
+    "transcript": "Good morning.",
+    "expected_behavior": "say",
+    "expected_arg_contains": ""
+  },
+
+  {
+    "category": "factual",
+    "transcript": "What does API stand for?",
+    "expected_behavior": "say",
+    "expected_arg_contains": ""
+  },
+  {
+    "category": "factual",
+    "transcript": "What is the capital of France?",
+    "expected_behavior": "say",
+    "expected_arg_contains": ""
+  },
+  {
+    "category": "factual",
+    "transcript": "Convert five kilometers to miles.",
+    "expected_behavior": "say",
+    "expected_arg_contains": ""
+  },
+  {
+    "category": "factual",
+    "transcript": "How many days are there in a leap year?",
+    "expected_behavior": "say",
+    "expected_arg_contains": ""
+  },
+
+  {
+    "category": "open_app",
+    "transcript": "Open Safari.",
+    "expected_behavior": "open_app",
+    "expected_arg_contains": "Safari"
+  },
+  {
+    "category": "open_app",
+    "transcript": "Launch Notes.",
+    "expected_behavior": "open_app",
+    "expected_arg_contains": "Notes"
+  },
+  {
+    "category": "open_app",
+    "transcript": "Open VS Code.",
+    "expected_behavior": "open_app",
+    "expected_arg_contains": "Visual Studio Code"
+  },
+
+  {
+    "category": "open_url",
+    "transcript": "Open LinkedIn.",
+    "expected_behavior": "open_url",
+    "expected_arg_contains": "linkedin"
+  },
+  {
+    "category": "open_url",
+    "transcript": "Go to YouTube.",
+    "expected_behavior": "open_url",
+    "expected_arg_contains": "youtube"
+  },
+  {
+    "category": "open_url",
+    "transcript": "Open gmail.",
+    "expected_behavior": "open_url",
+    "expected_arg_contains": "mail.google.com"
+  },
+
+  {
+    "category": "open_url_in_app",
+    "transcript": "Open gmail.com in Safari.",
+    "expected_behavior": "open_url_in_app",
+    "expected_arg_contains": "Safari"
+  },
+  {
+    "category": "open_url_in_app",
+    "transcript": "Open YouTube in Chrome.",
+    "expected_behavior": "open_url_in_app",
+    "expected_arg_contains": "Chrome"
+  },
+  {
+    "category": "open_url_in_app",
+    "transcript": "Open github.com in Brave.",
+    "expected_behavior": "open_url_in_app",
+    "expected_arg_contains": "Brave"
+  },
+
+  {
+    "category": "search_web",
+    "transcript": "What's the latest news on the US election?",
+    "expected_behavior": "search_web",
+    "expected_arg_contains": "election"
+  },
+  {
+    "category": "search_web",
+    "transcript": "What's Apple's stock price right now?",
+    "expected_behavior": "search_web",
+    "expected_arg_contains": "Apple"
+  },
+
+  {
+    "category": "system_command",
+    "transcript": "Toggle dark mode.",
+    "expected_behavior": "system_command",
+    "expected_arg_contains": "toggle_dark_mode"
+  },
+  {
+    "category": "system_command",
+    "transcript": "Mute the volume.",
+    "expected_behavior": "system_command",
+    "expected_arg_contains": "mute"
+  },
+  {
+    "category": "system_command",
+    "transcript": "Empty the trash.",
+    "expected_behavior": "system_command",
+    "expected_arg_contains": "empty_trash"
+  },
+
+  {
+    "category": "filler",
+    "transcript": "uhh open uhh Notes",
+    "expected_behavior": "open_app",
+    "expected_arg_contains": "Notes"
+  },
+  {
+    "category": "filler",
+    "transcript": "Can you please open Spotify for me?",
+    "expected_behavior": "open_app",
+    "expected_arg_contains": "Spotify"
+  }
+]

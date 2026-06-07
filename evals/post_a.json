@@ -1,0 +1,334 @@
+{
+  "model": "gpt-4o-mini",
+  "tool_choice": "auto",
+  "temperature": 0.2,
+  "total": 25,
+  "passed": 24,
+  "results": [
+    {
+      "case": {
+        "category": "chitchat",
+        "transcript": "Is this recording or not? Let's just check it once.",
+        "expected_behavior": "say",
+        "expected_arg_contains": ""
+      },
+      "actual_name": "say",
+      "actual_args_str": "Yes, I'm listening.",
+      "name_ok": true,
+      "arg_ok": true,
+      "passed": true
+    },
+    {
+      "case": {
+        "category": "chitchat",
+        "transcript": "Hi, this is Vivek. I don't want you to do anything, just say hi back.",
+        "expected_behavior": "say",
+        "expected_arg_contains": ""
+      },
+      "actual_name": "say",
+      "actual_args_str": "Hi Vivek! Good to hear from you.",
+      "name_ok": true,
+      "arg_ok": true,
+      "passed": true
+    },
+    {
+      "case": {
+        "category": "chitchat",
+        "transcript": "Hey Majoor, are you there?",
+        "expected_behavior": "say",
+        "expected_arg_contains": ""
+      },
+      "actual_name": "say",
+      "actual_args_str": "I'm here! How can I help you today?",
+      "name_ok": true,
+      "arg_ok": true,
+      "passed": true
+    },
+    {
+      "case": {
+        "category": "chitchat",
+        "transcript": "Thanks Majoor.",
+        "expected_behavior": "say",
+        "expected_arg_contains": ""
+      },
+      "actual_name": "say",
+      "actual_args_str": "Anytime!",
+      "name_ok": true,
+      "arg_ok": true,
+      "passed": true
+    },
+    {
+      "case": {
+        "category": "chitchat",
+        "transcript": "Good morning.",
+        "expected_behavior": "say",
+        "expected_arg_contains": ""
+      },
+      "actual_name": "say",
+      "actual_args_str": "Good morning! How can I assist you today?",
+      "name_ok": true,
+      "arg_ok": true,
+      "passed": true
+    },
+    {
+      "case": {
+        "category": "factual",
+        "transcript": "What does API stand for?",
+        "expected_behavior": "say",
+        "expected_arg_contains": ""
+      },
+      "actual_name": "say",
+      "actual_args_str": "Application Programming Interface.",
+      "name_ok": true,
+      "arg_ok": true,
+      "passed": true
+    },
+    {
+      "case": {
+        "category": "factual",
+        "transcript": "What is the capital of France?",
+        "expected_behavior": "say",
+        "expected_arg_contains": ""
+      },
+      "actual_name": "say",
+      "actual_args_str": "Paris.",
+      "name_ok": true,
+      "arg_ok": true,
+      "passed": true
+    },
+    {
+      "case": {
+        "category": "factual",
+        "transcript": "Convert five kilometers to miles.",
+        "expected_behavior": "say",
+        "expected_arg_contains": ""
+      },
+      "actual_name": "say",
+      "actual_args_str": "Five kilometers is approximately three point one miles.",
+      "name_ok": true,
+      "arg_ok": true,
+      "passed": true
+    },
+    {
+      "case": {
+        "category": "factual",
+        "transcript": "How many days are there in a leap year?",
+        "expected_behavior": "say",
+        "expected_arg_contains": ""
+      },
+      "actual_name": "say",
+      "actual_args_str": "There are 366 days in a leap year.",
+      "name_ok": true,
+      "arg_ok": true,
+      "passed": true
+    },
+    {
+      "case": {
+        "category": "open_app",
+        "transcript": "Open Safari.",
+        "expected_behavior": "open_app",
+        "expected_arg_contains": "Safari"
+      },
+      "actual_name": "open_app",
+      "actual_args_str": "{\"name\": \"Safari\"}",
+      "name_ok": true,
+      "arg_ok": true,
+      "passed": true
+    },
+    {
+      "case": {
+        "category": "open_app",
+        "transcript": "Launch Notes.",
+        "expected_behavior": "open_app",
+        "expected_arg_contains": "Notes"
+      },
+      "actual_name": "open_app",
+      "actual_args_str": "{\"name\": \"Notes\"}",
+      "name_ok": true,
+      "arg_ok": true,
+      "passed": true
+    },
+    {
+      "case": {
+        "category": "open_app",
+        "transcript": "Open VS Code.",
+        "expected_behavior": "open_app",
+        "expected_arg_contains": "Visual Studio Code"
+      },
+      "actual_name": "open_app",
+      "actual_args_str": "{\"name\": \"Visual Studio Code\"}",
+      "name_ok": true,
+      "arg_ok": true,
+      "passed": true
+    },
+    {
+      "case": {
+        "category": "open_url",
+        "transcript": "Open LinkedIn.",
+        "expected_behavior": "open_url",
+        "expected_arg_contains": "linkedin"
+      },
+      "actual_name": "open_url",
+      "actual_args_str": "{\"url\": \"https://www.linkedin.com\"}",
+      "name_ok": true,
+      "arg_ok": true,
+      "passed": true
+    },
+    {
+      "case": {
+        "category": "open_url",
+        "transcript": "Go to YouTube.",
+        "expected_behavior": "open_url",
+        "expected_arg_contains": "youtube"
+      },
+      "actual_name": "open_url",
+      "actual_args_str": "{\"url\": \"https://www.youtube.com\"}",
+      "name_ok": true,
+      "arg_ok": true,
+      "passed": true
+    },
+    {
+      "case": {
+        "category": "open_url",
+        "transcript": "Open gmail.",
+        "expected_behavior": "open_url",
+        "expected_arg_contains": "mail.google.com"
+      },
+      "actual_name": "open_app",
+      "actual_args_str": "{\"name\": \"Gmail\"}",
+      "name_ok": false,
+      "arg_ok": false,
+      "passed": false
+    },
+    {
+      "case": {
+        "category": "open_url_in_app",
+        "transcript": "Open gmail.com in Safari.",
+        "expected_behavior": "open_url_in_app",
+        "expected_arg_contains": "Safari"
+      },
+      "actual_name": "open_url_in_app",
+      "actual_args_str": "{\"url\": \"https://gmail.com\", \"app\": \"Safari\"}",
+      "name_ok": true,
+      "arg_ok": true,
+      "passed": true
+    },
+    {
+      "case": {
+        "category": "open_url_in_app",
+        "transcript": "Open YouTube in Chrome.",
+        "expected_behavior": "open_url_in_app",
+        "expected_arg_contains": "Chrome"
+      },
+      "actual_name": "open_url_in_app",
+      "actual_args_str": "{\"url\": \"https://www.youtube.com\", \"app\": \"Google Chrome\"}",
+      "name_ok": true,
+      "arg_ok": true,
+      "passed": true
+    },
+    {
+      "case": {
+        "category": "open_url_in_app",
+        "transcript": "Open github.com in Brave.",
+        "expected_behavior": "open_url_in_app",
+        "expected_arg_contains": "Brave"
+      },
+      "actual_name": "open_url_in_app",
+      "actual_args_str": "{\"url\": \"https://github.com\", \"app\": \"Brave\"}",
+      "name_ok": true,
+      "arg_ok": true,
+      "passed": true
+    },
+    {
+      "case": {
+        "category": "search_web",
+        "transcript": "What's the latest news on the US election?",
+        "expected_behavior": "search_web",
+        "expected_arg_contains": "election"
+      },
+      "actual_name": "search_web",
+      "actual_args_str": "{\"query\": \"latest US election news\"}",
+      "name_ok": true,
+      "arg_ok": true,
+      "passed": true
+    },
+    {
+      "case": {
+        "category": "search_web",
+        "transcript": "What's Apple's stock price right now?",
+        "expected_behavior": "search_web",
+        "expected_arg_contains": "Apple"
+      },
+      "actual_name": "search_web",
+      "actual_args_str": "{\"query\": \"Apple stock price today\"}",
+      "name_ok": true,
+      "arg_ok": true,
+      "passed": true
+    },
+    {
+      "case": {
+        "category": "system_command",
+        "transcript": "Toggle dark mode.",
+        "expected_behavior": "system_command",
+        "expected_arg_contains": "toggle_dark_mode"
+      },
+      "actual_name": "system_command",
+      "actual_args_str": "{\"command\": \"toggle_dark_mode\"}",
+      "name_ok": true,
+      "arg_ok": true,
+      "passed": true
+    },
+    {
+      "case": {
+        "category": "system_command",
+        "transcript": "Mute the volume.",
+        "expected_behavior": "system_command",
+        "expected_arg_contains": "mute"
+      },
+      "actual_name": "system_command",
+      "actual_args_str": "{\"command\": \"mute\"}",
+      "name_ok": true,
+      "arg_ok": true,
+      "passed": true
+    },
+    {
+      "case": {
+        "category": "system_command",
+        "transcript": "Empty the trash.",
+        "expected_behavior": "system_command",
+        "expected_arg_contains": "empty_trash"
+      },
+      "actual_name": "system_command",
+      "actual_args_str": "{\"command\": \"empty_trash\"}",
+      "name_ok": true,
+      "arg_ok": true,
+      "passed": true
+    },
+    {
+      "case": {
+        "category": "filler",
+        "transcript": "uhh open uhh Notes",
+        "expected_behavior": "open_app",
+        "expected_arg_contains": "Notes"
+      },
+      "actual_name": "open_app",
+      "actual_args_str": "{\"name\": \"Notes\"}",
+      "name_ok": true,
+      "arg_ok": true,
+      "passed": true
+    },
+    {
+      "case": {
+        "category": "filler",
+        "transcript": "Can you please open Spotify for me?",
+        "expected_behavior": "open_app",
+        "expected_arg_contains": "Spotify"
+      },
+      "actual_name": "open_app",
+      "actual_args_str": "{\"name\": \"Spotify\"}",
+      "name_ok": true,
+      "arg_ok": true,
+      "passed": true
+    }
+  ]
+}

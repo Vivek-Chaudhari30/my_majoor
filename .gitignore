@@ -56,3 +56,10 @@ api_key*
 *.tmp
 *.wav
 *.m4a
+
+# Eval harness — per-run result snapshots (regeneratable)
+evals/baseline.json
+evals/post_refactor.json
+evals/*.results.json
+__pycache__/
+*.pyc

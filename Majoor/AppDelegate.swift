@@ -105,7 +105,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         Task.detached { [weak self, openAI] in
             guard let self else { return }
 
-            // STT
+            // 1) STT
             let transcript: String
             do {
                 transcript = try await openAI.transcribe(fileURL: url)
@@ -121,39 +121,24 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             }
             Log.info("Transcript: \(transcript)")
 
-            // Brain
+            // 2) Agent loop — handles tool selection AND execution AND final reply.
+            // Phase stays at .thinking through the loop; tool execution is part of it.
             await MainActor.run { AppState.shared.phase = .thinking }
-            let call: ToolCall
+            let spoken: String
             do {
-                call = try await openAI.chat(transcript: transcript)
+                spoken = try await openAI.chat(transcript: transcript)
             } catch {
                 Log.error("Brain failed: \(error.localizedDescription)")
                 await MainActor.run { Task { await self.speakAndIdle("Something went wrong.") } }
                 return
             }
-            Log.info("Tool: \(call.name)  args: \(call.arguments)")
-            let reply = call.reply ?? ""
-            if !reply.isEmpty {
-                Log.info("Reply: \(reply)")
-                await MainActor.run { AppState.shared.lastReply = reply }
+
+            // 3) Speak whatever the model produced (post-loop final reply).
+            Log.info("Spoken: \(spoken)")
+            await MainActor.run {
+                AppState.shared.lastReply = spoken
+                Task { await self.speakAndIdle(spoken) }
             }
-
-            // Execute
-            await MainActor.run { AppState.shared.phase = .executing }
-            let ok = ToolExecutor.execute(call)
-
-            // Speak
-            await MainActor.run { Task {
-                let spoken: String
-                if !reply.isEmpty {
-                    spoken = reply
-                } else if ok {
-                    spoken = "Done."
-                } else {
-                    spoken = "Sorry, that didn't work."
-                }
-                await self.speakAndIdle(spoken)
-            }}
         }
     }
 
@@ -163,7 +148,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         if AppState.shared.lastReply.isEmpty {
             AppState.shared.lastReply = text
         }
-        await Speaker.speak(text, openAI: openAI)
+        await Speaker.speak(text)
         returnToIdle()
     }
 
