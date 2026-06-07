@@ -67,6 +67,28 @@ enum Tools {
                 ]
             ]
         ]
+        [
+            "type": "function",
+            "function": [
+                "name": "system_command",
+                "description": "Perform a local macOS system action.",
+                "parameters": [
+                    "type": "object",
+                    "properties": [
+                        "action": [
+                            "type": "string",
+                            "enum": ["toggle_dark_mode", "mute", "unmute", "empty_trash", "sleep"],
+                            "description": "The system action to perform."
+                        ],
+                        "reply": [
+                            "type": "string",
+                            "description": "A short conversational confirmation, under 10 words."
+                        ]
+                    ],
+                    "required": ["action", "reply"]
+                ]
+            ]
+        ]
     ]
 }
 

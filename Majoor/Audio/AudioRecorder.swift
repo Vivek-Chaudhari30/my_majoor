@@ -6,6 +6,7 @@ final class AudioRecorder: NSObject {
     private(set) var currentURL: URL?
     private var timer: Timer?
     private var maxPower: Float = -160.0
+    private static let vadThreshold: Float = -40.0 // Threshold for discarding quiet audio
 
     static func requestPermission(_ callback: @escaping (Bool) -> Void) {
         AVCaptureDevice.requestAccess(for: .audio) { granted in
@@ -61,7 +62,7 @@ final class AudioRecorder: NSObject {
         let url = currentURL
         self.recorder = nil
         
-        if peak < -40.0 {
+        if peak < Self.vadThreshold {
             Log.info("Audio discarded due to low volume (peak: \(peak) dB)")
             return nil
         }
