@@ -82,6 +82,25 @@
   {
     "type": "function",
     "function": {
+      "name": "remember",
+      "description": "Persistently store a short fact about the user so you can recall it in future sessions. Use whenever the user tells you something about themselves they'd want you to remember (their name, preferences, common contacts, default browser, etc.). Rewrite the fact in clean third-person, e.g. \"user's name is Vivek\" or \"user prefers Safari as their browser\".",
+      "strict": true,
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "fact": {
+            "type": "string",
+            "description": "A concise factual statement to persist."
+          }
+        },
+        "required": ["fact"]
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
       "name": "system_command",
       "description": "Run a local macOS system action.",
       "strict": true,

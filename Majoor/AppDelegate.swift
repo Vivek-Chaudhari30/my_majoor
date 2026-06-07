@@ -6,6 +6,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private let hotkey = HotkeyMonitor()
     private let recorder = AudioRecorder()
     private var orb: OrbPanel!
+
+    /// In-memory conversation buffer (Phase C / MASTER_PLAN §6). Last 6 turns
+    /// of (transcript, assistant reply) are sent with every chat call so the
+    /// model has same-session context ("what's my name" right after "my name
+    /// is Vivek"). Cleared on app quit. Persistent memory lives in
+    /// ~/.majoor/memory.json via MemoryStore.
+    private var conversationBuffer: [Turn] = []
+    private let maxBufferTurns = 6
     private let openAI: OpenAIClient? = {
         guard let key = Config.openAIKey else {
             Log.error("OPENAI_API_KEY not found. Create ~/.majoor/config.json with {\"openai_api_key\":\"sk-...\"}")
@@ -124,19 +132,45 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             }
             Log.info("Transcript: \(transcript)")
 
-            // 2) Agent loop — handles tool selection AND execution AND final reply.
-            // Phase stays at .thinking through the loop; tool execution is part of it.
+            // 2) Snapshot conversation buffer + persistent memory on main actor.
+            let snapshot = await MainActor.run {
+                (history: self.conversationBuffer,
+                 injection: MemoryStore.shared.systemPromptInjection(),
+                 factCount: MemoryStore.shared.facts.count)
+            }
+            let history = snapshot.history
+            let memoryInjection = snapshot.injection
+            if !memoryInjection.isEmpty {
+                Log.info("Memory: \(snapshot.factCount) fact(s) injected.")
+            }
+            if !history.isEmpty {
+                Log.info("Conversation buffer: \(history.count) turn(s) in context.")
+            }
+
+            // 3) Agent loop — handles tool selection AND execution AND final reply.
             await MainActor.run { AppState.shared.phase = .thinking }
             let spoken: String
             do {
-                spoken = try await openAI.chat(transcript: transcript)
+                spoken = try await openAI.chat(
+                    transcript: transcript,
+                    history: history,
+                    memoryInjection: memoryInjection
+                )
             } catch {
                 Log.error("Brain failed: \(error.localizedDescription)")
                 await MainActor.run { Task { await self.speakAndIdle("Something went wrong.") } }
                 return
             }
 
-            // 3) Speak whatever the model produced (post-loop final reply).
+            // 4) Append this turn to the buffer (cap at maxBufferTurns).
+            await MainActor.run {
+                self.conversationBuffer.append(Turn(userTranscript: transcript, assistantReply: spoken))
+                if self.conversationBuffer.count > self.maxBufferTurns {
+                    self.conversationBuffer.removeFirst(self.conversationBuffer.count - self.maxBufferTurns)
+                }
+            }
+
+            // 5) Speak whatever the model produced (post-loop final reply).
             Log.info("Spoken: \(spoken)")
             await MainActor.run {
                 AppState.shared.lastReply = spoken

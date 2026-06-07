@@ -32,6 +32,12 @@ struct ToolCall {
     let arguments: [String: Any]
 }
 
+/// One previous round of conversation, used as in-memory context.
+struct Turn: Sendable {
+    let userTranscript: String
+    let assistantReply: String
+}
+
 enum BrainError: Error, LocalizedError {
     case noToolSelected
     case malformedResponse(String)

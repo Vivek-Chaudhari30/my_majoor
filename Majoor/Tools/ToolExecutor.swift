@@ -60,6 +60,13 @@ enum ToolExecutor {
             let ok = runOpen(["https://www.google.com/search?q=\(encoded)"])
             return ToolResult(ok: ok, summary: ok ? "Searched the web for \"\(query)\"" : "Search failed")
 
+        case "remember":
+            guard let fact = call.arguments["fact"] as? String, !fact.isEmpty else {
+                return ToolResult(ok: false, summary: "remember missing fact")
+            }
+            Task { @MainActor in MemoryStore.shared.append(fact) }
+            return ToolResult(ok: true, summary: "Saved: \(fact)")
+
         case "system_command":
             guard let command = call.arguments["command"] as? String else {
                 return ToolResult(ok: false, summary: "system_command missing command")

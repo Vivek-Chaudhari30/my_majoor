@@ -59,7 +59,7 @@ api_key*
 
 # Eval harness — per-run result snapshots (regeneratable)
 evals/baseline.json
-evals/post_refactor.json
+evals/post_*.json
 evals/*.results.json
 __pycache__/
 *.pyc

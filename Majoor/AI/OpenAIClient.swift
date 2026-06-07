@@ -84,13 +84,22 @@ final class OpenAIClient {
     ///   back as `role: "tool"` messages, then the model is re-queried for the
     ///   final spoken reply.
     func chat(transcript: String,
+              history: [Turn] = [],
+              memoryInjection: String = "",
               model: String = "gpt-4o-mini",
               maxIterations: Int = 3) async throws -> String {
 
         var messages: [[String: Any]] = [
-            ["role": "system", "content": SystemPrompt.text],
-            ["role": "user",   "content": transcript]
+            ["role": "system", "content": SystemPrompt.text]
         ]
+        if !memoryInjection.isEmpty {
+            messages.append(["role": "system", "content": memoryInjection])
+        }
+        for turn in history {
+            messages.append(["role": "user",      "content": turn.userTranscript])
+            messages.append(["role": "assistant", "content": turn.assistantReply])
+        }
+        messages.append(["role": "user", "content": transcript])
 
         for iteration in 0..<maxIterations {
             let body: [String: Any] = [
