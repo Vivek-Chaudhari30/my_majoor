@@ -50,6 +50,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         statusItem.menu = menu
 
         orb = OrbPanel()
+        // Always-visible Dynamic-Island-style pill (Phase B). Idle pill stays
+        // up; phase changes drive the orb's size + color from inside SwiftUI.
+        orb.show()
 
         AudioRecorder.requestPermission { granted in
             if !granted {
@@ -70,7 +73,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             guard let self else { return }
             Task { @MainActor in
                 AppState.shared.phase = .listening
-                self.orb.show()
+                // Orb is already on-screen (Dynamic-Island idle pill); no show() needed.
             }
             do {
                 try self.recorder.start()
@@ -156,7 +159,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private func returnToIdle() {
         AppState.shared.phase = .idle
         AppState.shared.lastReply = ""
-        orb.hide()
+        // Don't hide — the idle pill is the resting Dynamic-Island state.
     }
 
     func applicationWillTerminate(_ notification: Notification) {
