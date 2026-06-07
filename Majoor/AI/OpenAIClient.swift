@@ -40,6 +40,10 @@ final class OpenAIClient {
         add("Content-Disposition: form-data; name=\"response_format\"\r\n\r\n")
         add("json\r\n")
 
+        add("--\(boundary)\r\n")
+        add("Content-Disposition: form-data; name=\"prompt\"\r\n\r\n")
+        add("Open Safari, go to Gmail, search for the weather in Boston, Xcode, Spotify.\r\n")
+
         if let language {
             add("--\(boundary)\r\n")
             add("Content-Disposition: form-data; name=\"language\"\r\n\r\n")
