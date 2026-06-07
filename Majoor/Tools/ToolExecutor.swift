@@ -35,8 +35,43 @@ enum ToolExecutor {
             let encoded = query.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? query
             return runOpen(["https://www.google.com/search?q=\(encoded)"])
 
+        case "system_command":
+            guard let action = call.arguments["action"] as? String else { return false }
+            return runSystemCommand(action)
+
         default:
             Log.error("Unknown tool: \(call.name)")
+            return false
+        }
+    }
+
+    @discardableResult
+    private static func runSystemCommand(_ action: String) -> Bool {
+        let script: String
+        switch action {
+        case "toggle_dark_mode":
+            script = "tell application \"System Events\" to tell appearance preferences to set dark mode to not dark mode"
+        case "mute":
+            script = "set volume with output muted"
+        case "unmute":
+            script = "set volume without output muted"
+        case "empty_trash":
+            script = "tell application \"Finder\" to empty trash"
+        case "sleep":
+            script = "tell application \"System Events\" to sleep"
+        default:
+            return false
+        }
+        
+        let task = Process()
+        task.executableURL = URL(fileURLWithPath: "/usr/bin/osascript")
+        task.arguments = ["-e", script]
+        do {
+            try task.run()
+            Log.info("Ran system command: \(action)")
+            return true
+        } catch {
+            Log.error("osascript failed: \(error.localizedDescription)")
             return false
         }
     }

@@ -163,7 +163,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         if AppState.shared.lastReply.isEmpty {
             AppState.shared.lastReply = text
         }
-        await Speaker.speak(text)
+        await Speaker.speak(text, openAI: openAI)
         returnToIdle()
     }
 

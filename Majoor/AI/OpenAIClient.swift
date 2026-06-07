@@ -40,6 +40,10 @@ final class OpenAIClient {
         add("Content-Disposition: form-data; name=\"response_format\"\r\n\r\n")
         add("json\r\n")
 
+        add("--\(boundary)\r\n")
+        add("Content-Disposition: form-data; name=\"prompt\"\r\n\r\n")
+        add("Open Safari, go to Gmail, search for the weather in Boston, Xcode, Spotify.\r\n")
+
         if let language {
             add("--\(boundary)\r\n")
             add("Content-Disposition: form-data; name=\"language\"\r\n\r\n")
@@ -106,12 +110,16 @@ final class OpenAIClient {
                                                      → search_web "weather in Boston"
              "what is the capital of France"         → search_web "capital of France"
 
-        4. The user explicitly wants to launch a MAC APPLICATION by name
+        4. The user wants to change a SYSTEM SETTING or ACTION
+           (e.g., "toggle dark mode", "mute volume", "empty the trash", "sleep mac")
+           → call system_command with the appropriate action.
+
+        5. The user explicitly wants to launch a MAC APPLICATION by name
            (Safari, Notes, Calendar, Visual Studio Code, Spotify, Terminal, Finder, etc.)
            → call open_app with the canonical app name as it appears in /Applications.
            Map casual names: "vs code" → "Visual Studio Code", "chrome" → "Google Chrome".
 
-        5. Anything ambiguous or unrecognized
+        6. Anything ambiguous or unrecognized
            → call search_web with the user's utterance as the query.
 
         For every tool call, include a short conversational `reply` (under 10 words)
@@ -157,6 +165,33 @@ final class OpenAIClient {
             throw BrainError.noToolSelected
         }
         return ToolCall(name: name, arguments: args)
+    }
+
+    // MARK: - TTS
+
+    func speak(text: String, model: String = "tts-1", voice: String = "alloy") async throws -> Data {
+        let endpoint = URL(string: "https://api.openai.com/v1/audio/speech")!
+        var req = URLRequest(url: endpoint)
+        req.httpMethod = "POST"
+        req.setValue("Bearer " + apiKey, forHTTPHeaderField: "Authorization")
+        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+
+        let body: [String: Any] = [
+            "model": model,
+            "input": text,
+            "voice": voice,
+            "response_format": "mp3"
+        ]
+
+        req.httpBody = try JSONSerialization.data(withJSONObject: body)
+
+        let (data, response) = try await session.data(for: req)
+        guard let http = response as? HTTPURLResponse else { throw OpenAIError.noHTTPResponse }
+        guard (200..<300).contains(http.statusCode) else {
+            let bodyStr = String(data: data, encoding: .utf8) ?? "<no body>"
+            throw OpenAIError.http(http.statusCode, bodyStr)
+        }
+        return data
     }
 }
 
