@@ -51,6 +51,9 @@ secrets.*
 .openai*
 api_key*
 
+# Release artifacts (built .app + zip live under dist/, never tracked)
+dist/
+
 # Logs / scratch / captured audio
 *.log
 *.tmp
