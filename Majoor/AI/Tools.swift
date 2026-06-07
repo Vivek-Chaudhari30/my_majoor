@@ -66,7 +66,7 @@ enum Tools {
                     "required": ["query", "reply"]
                 ]
             ]
-        ]
+        ],
         [
             "type": "function",
             "function": [
