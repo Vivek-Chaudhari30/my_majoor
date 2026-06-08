@@ -6,6 +6,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private let hotkey = HotkeyMonitor()
     private let recorder = AudioRecorder()
     private var orb: OrbPanel!
+    private var onboardingWindow: OnboardingWindow?
 
     /// In-memory conversation buffer (Phase C / MASTER_PLAN §6). Last 6 turns
     /// of (transcript, assistant reply) are sent with every chat call so the
@@ -14,13 +15,26 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     /// ~/.majoor/memory.json via MemoryStore.
     private var conversationBuffer: [Turn] = []
     private let maxBufferTurns = 6
-    private let openAI: OpenAIClient? = {
+
+    /// Re-created when the user finishes the onboarding API-key step so the
+    /// new key takes effect without a relaunch. `nil` until a key is set.
+    private var openAI: OpenAIClient? = AppDelegate.makeClient()
+
+    private static func makeClient() -> OpenAIClient? {
         guard let key = Config.openAIKey else {
-            Log.error("OPENAI_API_KEY not found. Create ~/.majoor/config.json with {\"openai_api_key\":\"sk-...\"}")
+            Log.warn("No OpenAI API key configured yet — chat calls will be skipped.")
             return nil
         }
         return OpenAIClient(apiKey: key)
-    }()
+    }
+
+    /// Called by the onboarding API-key step.
+    @MainActor
+    private func refreshOpenAI() {
+        openAI = AppDelegate.makeClient()
+        Log.info(openAI == nil ? "Refreshed OpenAI client → still nil (no key found)."
+                               : "Refreshed OpenAI client.")
+    }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
@@ -40,6 +54,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         menu.addItem(NSMenuItem.separator())
         menu.addItem(withTitle: "Hold ⌃⌥ to talk", action: nil, keyEquivalent: "")
         menu.addItem(NSMenuItem.separator())
+        let onboardingItem = NSMenuItem(title: "Show Onboarding…",
+                                        action: #selector(showOnboarding),
+                                        keyEquivalent: "")
+        onboardingItem.target = self
+        menu.addItem(onboardingItem)
+        menu.addItem(NSMenuItem.separator())
+
         let launchItem = NSMenuItem(title: "Launch at Login",
                                     action: #selector(toggleLaunchAtLogin(_:)),
                                     keyEquivalent: "")
@@ -81,6 +102,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             guard let self else { return }
             Task { @MainActor in
                 AppState.shared.phase = .listening
+                OnboardingState.shared.hotkeyFiredOnce = true
                 // Orb is already on-screen (Dynamic-Island idle pill); no show() needed.
             }
             do {
@@ -101,6 +123,35 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             self.runPipeline(url: url)
         }
         hotkey.start()
+
+        // Show onboarding on first launch (no ~/.majoor/.onboarded sentinel).
+        if !OnboardingState.isOnboarded {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) { [weak self] in
+                self?.showOnboarding()
+            }
+        }
+    }
+
+    @MainActor
+    @objc private func showOnboarding() {
+        OnboardingState.shared.reset()
+        if onboardingWindow == nil {
+            onboardingWindow = OnboardingWindow(
+                onFinish: { [weak self] in
+                    OnboardingState.markOnboarded()
+                    self?.onboardingWindow?.close()
+                },
+                onAPIKeySaved: { [weak self] in
+                    self?.refreshOpenAI()
+                },
+                onClose: { [weak self] in
+                    self?.onboardingWindow = nil
+                    NSApp.setActivationPolicy(.accessory)
+                }
+            )
+        }
+        NSApp.setActivationPolicy(.regular)
+        onboardingWindow?.present()
     }
 
     private func runPipeline(url: URL) {
