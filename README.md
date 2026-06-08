@@ -2,6 +2,8 @@
 
 > A voice-first macOS menu-bar assistant. Hold **Ctrl + Option**, speak, get things done.
 
+**🌐 Website · [majoor.vercel.app](https://majoor.vercel.app)**  ·  **📦 Latest release · [v1.1.0 — Onboarding](https://github.com/Vivek-Chaudhari30/my_majoor/releases/latest)**
+
 Majoor lives in your menu bar as a small Dynamic-Island-style pill under the notch. Push-to-talk, then it transcribes what you said, picks the right action (or just talks back), and either opens what you asked for, answers your question, or remembers what you told it.
 
 ```
