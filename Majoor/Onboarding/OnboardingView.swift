@@ -204,7 +204,6 @@ private struct APIKeyStep: View {
     @EnvironmentObject var state: OnboardingState
     var onSaved: () -> Void
 
-    @State private var saved = false
     @State private var saving = false
     @State private var errorText: String?
     @State private var revealed = false
@@ -216,7 +215,7 @@ private struct APIKeyStep: View {
             blurb: "Majoor uses OpenAI for transcription and routing. You'll need a key with available credit.",
             statusOK: state.apiKeyConfigured,
             statusOKText: "API key configured",
-            statusBadText: errorText ?? "Not configured yet",
+            statusBadText: errorText ?? "Paste your sk-… key below.",
             actionLabel: nil,
             actionDisabled: true,
             action: {}
@@ -232,6 +231,7 @@ private struct APIKeyStep: View {
                     }
                     .textFieldStyle(.roundedBorder)
                     .font(.system(size: 13, design: .monospaced))
+                    .onSubmit { primaryAction() }
 
                     Button(action: { revealed.toggle() }) {
                         Image(systemName: revealed ? "eye.slash" : "eye")
@@ -249,19 +249,50 @@ private struct APIKeyStep: View {
                     .buttonStyle(.link)
                     .foregroundStyle(.blue.opacity(0.9))
                     Spacer()
-                    Button(saved ? "Saved ✓" : (saving ? "Saving…" : "Save key")) {
-                        save()
-                    }
-                    .keyboardShortcut(.return)
-                    .disabled(saving || state.keyInput.isEmpty)
                 }
 
-                NavRow(canContinue: state.apiKeyConfigured)
+                // Custom nav row — one smart "Continue" button that saves + advances.
+                HStack {
+                    Button("Back") { state.goBack() }
+                        .buttonStyle(.bordered)
+                    Spacer()
+                    PrimaryButton(continueLabel) {
+                        primaryAction()
+                    }
+                    .disabled(!canPressContinue)
+                    .opacity(canPressContinue ? 1 : 0.55)
+                }
             }
+            // Silently clear stale error the moment the user edits the field again.
+            .onChange(of: state.keyInput) { _, _ in errorText = nil }
         }
     }
 
-    private func save() {
+    private var continueLabel: String {
+        if saving { return "Saving…" }
+        if state.apiKeyConfigured { return "Continue" }
+        return "Save & Continue"
+    }
+
+    /// True when the button should be pressable: either we already have a saved
+    /// key (just advance), or the input field holds something that looks valid
+    /// (save first, then advance).
+    private var canPressContinue: Bool {
+        if saving { return false }
+        if state.apiKeyConfigured { return true }
+        let t = state.keyInput.trimmingCharacters(in: .whitespacesAndNewlines)
+        return t.hasPrefix("sk-") && t.count >= 20
+    }
+
+    /// One action handles both cases — pre-saved (advance), and just-pasted
+    /// (validate, save, then advance). Triggered by clicking the button OR
+    /// pressing Return in the text field.
+    private func primaryAction() {
+        if saving { return }
+        if state.apiKeyConfigured {
+            state.advance()
+            return
+        }
         let trimmed = state.keyInput.trimmingCharacters(in: .whitespacesAndNewlines)
         guard trimmed.hasPrefix("sk-"), trimmed.count >= 20 else {
             errorText = "That doesn't look like an OpenAI key (should start with sk-)."
@@ -274,9 +305,12 @@ private struct APIKeyStep: View {
             DispatchQueue.main.async {
                 saving = false
                 if ok {
-                    saved = true
-                    state.objectWillChange.send()
                     onSaved()
+                    // Tiny delay so the user sees the status row flip to "configured ✓"
+                    // before the step transitions.
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.20) {
+                        state.advance()
+                    }
                 } else {
                     errorText = "Couldn't write ~/.majoor/config.json. Check permissions."
                 }
