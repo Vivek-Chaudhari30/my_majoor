@@ -60,6 +60,14 @@ enum ToolExecutor {
             let ok = runOpen(["https://www.google.com/search?q=\(encoded)"])
             return ToolResult(ok: ok, summary: ok ? "Searched the web for \"\(query)\"" : "Search failed")
 
+        case "search_files":
+            guard let query = call.arguments["query"] as? String, !query.isEmpty else {
+                return ToolResult(ok: false, summary: "search_files missing query")
+            }
+            let openTop = (call.arguments["open_top"] as? Bool) ?? false
+            let result = FileSearchClient.search(query: query, openTop: openTop)
+            return ToolResult(ok: result.ok, summary: result.summary)
+
         case "remember":
             guard let fact = call.arguments["fact"] as? String, !fact.isEmpty else {
                 return ToolResult(ok: false, summary: "remember missing fact")

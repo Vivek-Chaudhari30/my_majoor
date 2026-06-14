@@ -101,6 +101,29 @@
   {
     "type": "function",
     "function": {
+      "name": "search_files",
+      "description": "Search the user's local filesystem (Documents, Downloads, Desktop) using Spotlight. Use when the user asks to find, locate, or search for a file on their Mac. Returns matching file names. Pass open_top=true if the user also wants to open the best match immediately.",
+      "strict": true,
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "query": {
+            "type": "string",
+            "description": "Spotlight search query. Use plain keywords (e.g. 'resume PDF', 'invoice 2024'). Avoid shell metacharacters."
+          },
+          "open_top": {
+            "type": "boolean",
+            "description": "If true, automatically open the top-matching file after the search."
+          }
+        },
+        "required": ["query", "open_top"]
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
       "name": "system_command",
       "description": "Run a local macOS system action.",
       "strict": true,
