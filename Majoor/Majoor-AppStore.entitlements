@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+
+	<!-- App Sandbox: required for Mac App Store distribution -->
+	<key>com.apple.security.app-sandbox</key>
+	<true/>
+
+	<!-- Network access: required to reach the OpenAI API -->
+	<key>com.apple.security.network.client</key>
+	<true/>
+
+	<!-- Microphone access: required for push-to-talk voice capture -->
+	<key>com.apple.security.device.audio-input</key>
+	<true/>
+
+	<!-- File open dialogs: allows reading files the user selects via NSOpenPanel -->
+	<key>com.apple.security.files.user-selected.read-only</key>
+	<true/>
+
+	<!-- Security-scoped bookmarks: allows persistent access to user-selected files across launches -->
+	<key>com.apple.security.files.bookmarks.app-scope</key>
+	<true/>
+
+	<!--
+		Temporary exception — Accessibility:
+		Majoor uses CGEventTap to intercept the global Ctrl+Option push-to-talk hotkey.
+		CGEventTap requires the Accessibility entitlement when running inside the sandbox.
+		This exception must be declared here AND the user must grant Accessibility access
+		in System Settings > Privacy & Security > Accessibility.
+		Note: Apple may ask for justification during App Store review; explain that the
+		hotkey is a core push-to-talk mechanic and cannot be implemented with a less
+		privileged API (e.g. NSEvent.addGlobalMonitorForEvents does not capture events
+		when another app is focused without Accessibility permission).
+	-->
+	<key>com.apple.security.temporary-exception.accessibility</key>
+	<true/>
+
+</dict>
+</plist>

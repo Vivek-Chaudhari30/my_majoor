@@ -10,8 +10,12 @@ options:
 settings:
   base:
     SWIFT_VERSION: "5.9"
-    MARKETING_VERSION: "0.1.0"
+    MARKETING_VERSION: "1.0.0"
     CURRENT_PROJECT_VERSION: "1"
+  configs:
+    Debug: debug
+    Release: release
+    AppStore: release
 
 targets:
   Majoor:
@@ -23,6 +27,7 @@ targets:
         excludes:
           - Info.plist
           - Majoor.entitlements
+          - Majoor-AppStore.entitlements
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.majoor.app
@@ -36,3 +41,13 @@ targets:
         DEVELOPMENT_TEAM: "27WFRH77ZP"
         COMBINE_HIDPI_IMAGES: YES
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+      configs:
+        AppStore:
+          # App Store distribution: sandbox on, Distribution signing, App Store entitlements
+          CODE_SIGN_IDENTITY: "Apple Distribution"
+          CODE_SIGN_ENTITLEMENTS: Majoor/Majoor-AppStore.entitlements
+          ENABLE_APP_SANDBOX: YES
+          SWIFT_OPTIMIZATION_LEVEL: "-O"
+          SWIFT_COMPILATION_MODE: wholemodule
+          DEBUG_INFORMATION_FORMAT: "dwarf-with-dsym"
+          GCC_OPTIMIZATION_LEVEL: s
