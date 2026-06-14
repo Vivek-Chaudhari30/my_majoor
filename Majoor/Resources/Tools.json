@@ -64,7 +64,7 @@
     "type": "function",
     "function": {
       "name": "search_web",
-      "description": "Open a Google search in the default browser. Use ONLY when the user is asking for fresh / live information they explicitly want searched — current news, today's prices, latest scores. For things you can answer from your own knowledge (capitals, definitions, conversions), reply in text instead — do NOT call this tool.",
+      "description": "Fetch live web search results via DuckDuckGo and return the top snippets as text, which you then synthesise into a spoken answer. Use ONLY when the user is asking for genuinely fresh / live information — current news, today's weather, current prices, latest sports scores, recent events. For facts you already know (capitals, definitions, unit conversions, general knowledge), reply in text directly — do NOT call this tool.",
       "strict": true,
       "parameters": {
         "type": "object",
@@ -72,7 +72,7 @@
         "properties": {
           "query": {
             "type": "string",
-            "description": "A clean Google search query stripped of filler words (no 'can you', 'please', 'open and')."
+            "description": "A clean, specific search query stripped of filler words (no 'can you', 'please', 'tell me about'). Make it optimised for a web search engine — e.g. 'weather Mumbai today' or 'latest AI news June 2025'."
           }
         },
         "required": ["query"]

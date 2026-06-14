@@ -10,7 +10,7 @@ struct ToolResult {
 
 enum ToolExecutor {
     @discardableResult
-    static func execute(_ call: ToolCall) -> ToolResult {
+    static func execute(_ call: ToolCall) async -> ToolResult {
         switch call.name {
         case "open_app":
             guard let raw = call.arguments["name"] as? String, !raw.isEmpty else {
@@ -56,9 +56,19 @@ enum ToolExecutor {
             guard let query = call.arguments["query"] as? String, !query.isEmpty else {
                 return ToolResult(ok: false, summary: "search_web missing query")
             }
-            let encoded = query.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? query
-            let ok = runOpen(["https://www.google.com/search?q=\(encoded)"])
-            return ToolResult(ok: ok, summary: ok ? "Searched the web for \"\(query)\"" : "Search failed")
+            // Fetch real results from DuckDuckGo and return them as context
+            // for the model to synthesise into a spoken answer.
+            do {
+                let results = try await WebSearchClient.search(query: query)
+                Log.info("search_web got results (\(results.count) chars) for: \(query)")
+                return ToolResult(ok: true, summary: results)
+            } catch {
+                Log.error("search_web fetch failed: \(error.localizedDescription)")
+                // Graceful fallback: open Google in browser so user still gets something
+                let encoded = query.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? query
+                runOpen(["https://www.google.com/search?q=\(encoded)"])
+                return ToolResult(ok: false, summary: "Could not fetch search results; opened Google in browser instead.")
+            }
 
         case "remember":
             guard let fact = call.arguments["fact"] as? String, !fact.isEmpty else {

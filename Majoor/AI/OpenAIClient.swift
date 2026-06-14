@@ -136,7 +136,7 @@ final class OpenAIClient {
             // 3) Execute each tool, append a tool result message per call.
             for call in toolCalls {
                 Log.info("Tool: \(call.name)  args: \(call.arguments)")
-                let result = ToolExecutor.execute(call)
+                let result = await ToolExecutor.execute(call)
                 Log.info("Result: \(result.summary) (ok=\(result.ok))")
                 messages.append([
                     "role": "tool",

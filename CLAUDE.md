@@ -30,7 +30,7 @@ HotkeyMonitor (CGEventTap, Ctrl+Option)
 
 - `open_app(app_name: String)`
 - `open_url(url: String)`
-- `search_web(query: String)` → `https://www.google.com/search?q=...`
+- `search_web(query: String)` → fetches DuckDuckGo Instant Answer + HTML snippets, returns text to the model for spoken synthesis. Falls back to opening Google in browser if network fails.
 
 Common spoken-name aliases (gmail, vs code, linkedin, …) live in `Tools/AppCatalog.swift`.
 
